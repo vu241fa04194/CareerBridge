@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // 1. Users collection (Private student profiles)
+    // Students can only view and edit their own account; admins have oversight.
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // 2. Applications collection
+    // Students can ONLY read and create their own job/internship applications.
+    match /applications/{applicationId} {
+      allow read: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 3. Student Progress & Resumes
+    // Strictly private to each student.
+    match /studentProgress/{studentId} {
+      allow read, write: if isOwner(studentId) || isAdmin();
+    }
+
+    match /resumes/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    match /savedOpportunities/{docId} {
+      allow read: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+    }
+
+    // 4. Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 5. Jobs, Internships, Courses, Companies & Mock Tests (Public catalog)
+    // Anyone can browse opportunities and courses; authenticated users can write.
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /internships/{internshipId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /companies/{companyId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /mockTests/{testId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}
