@@ -43,6 +43,18 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Welcome to CareerBridge Backend API',
+    status: 'online',
+    database: 'Firebase (Cloud Firestore & Firebase Auth)',
+    health: '/api/health',
+    frontend: 'https://careerbridge-1hre.onrender.com',
+    version: '2.0.0',
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
