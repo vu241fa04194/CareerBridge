@@ -17,18 +17,24 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function StudentProfile() {
-  const { user, profile, updateProfile, refreshUser } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
+
+  const getSkillsString = (sk) => {
+    if (Array.isArray(sk)) return sk.join(', ');
+    if (typeof sk === 'string') return sk;
+    return '';
+  };
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    avatar: user?.avatar || '',
-    collegeName: profile?.collegeName || '',
-    degree: profile?.degree || 'B.Tech',
-    branch: profile?.branch || '',
-    graduationYear: profile?.graduationYear || 2026,
-    cgpa: profile?.cgpa || '',
-    skills: profile?.skills?.join(', ') || '',
+    name: profile?.fullName || user?.name || user?.displayName || '',
+    phone: profile?.phone || user?.phone || '',
+    avatar: profile?.avatar || user?.avatar || '',
+    collegeName: profile?.education?.college || profile?.collegeName || '',
+    degree: profile?.education?.degree || profile?.degree || 'B.Tech',
+    branch: profile?.education?.branch || profile?.branch || '',
+    graduationYear: profile?.education?.year || profile?.graduationYear || 2026,
+    cgpa: profile?.education?.cgpa || profile?.cgpa || '',
+    skills: getSkillsString(profile?.skills),
     bio: profile?.bio || '',
     linkedIn: profile?.linkedIn || '',
     github: profile?.github || '',
@@ -42,29 +48,29 @@ export default function StudentProfile() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user && profile) {
+    if (profile || user) {
       setFormData({
-        name: user.name || '',
-        phone: user.phone || '',
-        avatar: user.avatar || '',
-        collegeName: profile.collegeName || '',
-        degree: profile.degree || 'B.Tech',
-        branch: profile.branch || '',
-        graduationYear: profile.graduationYear || 2026,
-        cgpa: profile.cgpa || '',
-        skills: profile.skills?.join(', ') || '',
-        bio: profile.bio || '',
-        linkedIn: profile.linkedIn || '',
-        github: profile.github || '',
-        portfolio: profile.portfolio || '',
-        resumeUrl: profile.resumeUrl || '',
-        resumeFileName: profile.resumeFileName || '',
+        name: profile?.fullName || user?.name || user?.displayName || '',
+        phone: profile?.phone || user?.phone || '',
+        avatar: profile?.avatar || user?.avatar || '',
+        collegeName: profile?.education?.college || profile?.collegeName || '',
+        degree: profile?.education?.degree || profile?.degree || 'B.Tech',
+        branch: profile?.education?.branch || profile?.branch || '',
+        graduationYear: profile?.education?.year || profile?.graduationYear || 2026,
+        cgpa: profile?.education?.cgpa || profile?.cgpa || '',
+        skills: getSkillsString(profile?.skills),
+        bio: profile?.bio || '',
+        linkedIn: profile?.linkedIn || '',
+        github: profile?.github || '',
+        portfolio: profile?.portfolio || '',
+        resumeUrl: profile?.resumeUrl || '',
+        resumeFileName: profile?.resumeFileName || '',
       });
     }
   }, [user, profile]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
@@ -76,10 +82,10 @@ export default function StudentProfile() {
     try {
       await updateProfile(formData);
       setSuccess('Profile updated successfully! Completion score recalculated.');
-      await refreshUser();
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile.');
+      console.error('Update profile error:', err);
+      setError(err.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }

@@ -218,7 +218,8 @@ export const AuthProvider = ({ children }) => {
     setProfile(updated);
     setUser((prev) => ({
       ...prev,
-      displayName: updated.fullName || prev.displayName,
+      name: updated.fullName || updated.name || prev?.name,
+      displayName: updated.fullName || updated.name || prev?.displayName,
     }));
     return { success: true, profile: updated };
   };
@@ -231,6 +232,8 @@ export const AuthProvider = ({ children }) => {
       setProfile(userDoc);
       setUser((prev) => ({
         ...prev,
+        name: userDoc.fullName || userDoc.name || prev?.name,
+        displayName: userDoc.fullName || userDoc.name || prev?.displayName,
         role: userDoc.role || 'student',
       }));
     }

@@ -67,17 +67,55 @@ export const createUserProfile = async (uid, data) => {
 export const updateUserProfile = async (uid, updateData) => {
   const firestore = checkDb();
   const userDocRef = doc(firestore, 'users', uid);
+
+  // Ensure skills is ALWAYS a clean array of strings
+  const skillsArray = Array.isArray(updateData.skills)
+    ? updateData.skills
+    : typeof updateData.skills === 'string'
+    ? updateData.skills.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const fullName = updateData.fullName || updateData.name || '';
+
+  const education = updateData.education || {
+    college: updateData.collegeName || updateData.college || '',
+    degree: updateData.degree || 'B.Tech',
+    branch: updateData.branch || '',
+    year: updateData.graduationYear || updateData.year || 2026,
+    cgpa: updateData.cgpa || '',
+  };
+
+  // Calculate profile completion dynamically
+  let score = 20;
+  if (fullName) score += 15;
+  if (updateData.phone) score += 15;
+  if (education.college) score += 15;
+  if (education.branch) score += 15;
+  if (skillsArray.length > 0) score += 20;
+  const profileCompletion = Math.min(100, score);
+
   const payload = {
     ...updateData,
+    fullName,
+    name: fullName,
+    skills: skillsArray,
+    education,
+    collegeName: education.college,
+    degree: education.degree,
+    branch: education.branch,
+    graduationYear: education.year,
+    cgpa: education.cgpa,
+    profileCompletion,
     updatedAt: serverTimestamp(),
   };
+
   // Prevent unauthorized role modification via profile update
   delete payload.role;
   delete payload.uid;
 
-  await updateDoc(userDocRef, payload);
+  await setDoc(userDocRef, payload, { merge: true });
   const updated = await getDoc(userDocRef);
-  return { id: updated.id, ...updated.data() };
+  return { id: updated.id, _id: updated.id, ...updated.data() };
 };
 
 export const getAllStudents = async () => {

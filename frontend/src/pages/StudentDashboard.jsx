@@ -254,7 +254,12 @@ export default function StudentDashboard() {
                 Recommended Jobs For You
               </h2>
               <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Matched based on your skills: {profile.skills?.slice(0, 3).join(', ') || 'General CS'}
+                Matched based on your skills:{' '}
+                {Array.isArray(profile?.skills) && profile.skills.length > 0
+                  ? profile.skills.slice(0, 3).join(', ')
+                  : typeof profile?.skills === 'string' && profile.skills.trim()
+                  ? profile.skills
+                  : 'General CS'}
               </p>
             </div>
             <Link to="/jobs" className="btn btn-outline btn-sm">
